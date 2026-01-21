@@ -1,8 +1,9 @@
 ﻿using Core.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Entities.Entities
 {
-    public class Task
+    public class TodoTask
     {
         public int Id { get; set; }
         public string Title { get; set; }

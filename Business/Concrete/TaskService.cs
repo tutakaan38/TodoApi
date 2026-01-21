@@ -1,31 +1,70 @@
 ﻿using Business.Abstract;
+using Core.Enums;
 using Entities;
+using Entities.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Business.Concrete
 {
-    public class TaskService(TodoAppContext conte) : ITaskService
+    public class TaskService(TodoAppContext content) : ITaskService
     {
-        public Task Create(string title, string description)
+        public async Task<TodoTask> Create(string title, string description)
         {
-            throw new NotImplementedException();
+
+            var task = new TodoTask
+            {
+                Title = title,
+                Description = description,
+                CreatedAt = DateTime.Now,
+                State = TaskState.Todo
+            };
+
+            content.Tasks.Add(task);
+            await content.SaveChangesAsync();
+
+            return task;
         }
 
-        public void Delete(int id)
+        public async Task<bool> Delete(int id)
         {
-            throw new NotImplementedException();
+            var task = await content.Tasks.FindAsync(id);
+            if (task == null) {
+                return false;
+            }
+
+            content.Tasks.Remove(task);
+            await content.SaveChangesAsync();
+            return true;
         }
 
-        public Task Get(int id)
+        public async Task<List<TodoTask>> Get()
         {
-            throw new NotImplementedException();
+            var task = await content.Tasks.ToListAsync();
+            return task;
         }
 
-        public Task Update(int id, string title, string description)
+        public async Task<bool> Update(int id, string title, string description,TaskState taskState)
         {
-            throw new NotImplementedException();
+            var task = await content.Tasks.FindAsync(id);
+            if (task == null) {
+                return false;
+            }
+
+            task.Title = title;
+            task.Description = description;
+            task.State = taskState;
+
+            await content.SaveChangesAsync();
+            return true;
+        }
+        public async Task<TodoTask?> Get(int id)
+        {
+            var task = await content.Tasks.FindAsync(id);
+            return task;
         }
     }
 }
