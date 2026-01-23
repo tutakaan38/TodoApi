@@ -9,18 +9,10 @@ namespace Business.Abstract
 {
     public interface ITaskService
     {
-        Task<TodoTask> Create(string title, string description);
-
-
+        Task<TodoTask> Create(string title, string content);
+        Task<bool> Update(int id,string title,string content,TaskState taskState);
         Task<bool> Delete(int id);
-
-
         Task<List<TodoTask>> Get();
-
-
-        Task<bool> Update(int id, string title, string description, TaskState taskState);
-
         Task<TodoTask?> Get(int id);
-        
     }
 }

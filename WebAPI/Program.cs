@@ -9,8 +9,6 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<TodoAppContext>(options => options.UseSqlServer(connectionString));
 
-// Not: Alttaki satýrý silebilirsiniz, yukarýdaki AddDbContext yeterlidir.
-// builder.Services.AddDbContext<TodoAppContext>(); 
 
 builder.Services.AddScoped<ITaskService, TaskService>();
 
@@ -29,7 +27,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(); // Görsel arayüzü (UI) saðlar
 }
 
-app.UseHttpsRedirection();
+app.UseHttpsRedirection(); 
 app.UseAuthorization();
 app.MapControllers();
 

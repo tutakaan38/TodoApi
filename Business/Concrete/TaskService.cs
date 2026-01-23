@@ -10,11 +10,10 @@ using System.Threading.Tasks;
 
 namespace Business.Concrete
 {
-    public class TaskService(TodoAppContext content) : ITaskService
+    public class TaskService(TodoAppContext context) : ITaskService
     {
         public async Task<TodoTask> Create(string title, string description)
         {
-
             var task = new TodoTask
             {
                 Title = title,
@@ -23,33 +22,38 @@ namespace Business.Concrete
                 State = TaskState.Todo
             };
 
-            content.Tasks.Add(task);
-            await content.SaveChangesAsync();
-
+            context.Tasks.AddAsync(task);
+            await context.SaveChangesAsync();
             return task;
         }
 
         public async Task<bool> Delete(int id)
         {
-            var task = await content.Tasks.FindAsync(id);
-            if (task == null) {
+            var task = await context.Tasks.FindAsync(id);
+            if (task == null) { 
                 return false;
             }
-
-            content.Tasks.Remove(task);
-            await content.SaveChangesAsync();
+            
+            context.Tasks.Remove(task);
+            await context.SaveChangesAsync();
             return true;
         }
 
         public async Task<List<TodoTask>> Get()
         {
-            var task = await content.Tasks.ToListAsync();
+            var tasks = await context.Tasks.ToListAsync();
+            return tasks;
+        }
+
+        public async Task<TodoTask?> Get(int id)
+        {
+            var task = await context.Tasks.FindAsync(id);
             return task;
         }
 
-        public async Task<bool> Update(int id, string title, string description,TaskState taskState)
+        public async Task<bool> Update(int id, string title, string description, TaskState taskState)
         {
-            var task = await content.Tasks.FindAsync(id);
+            var task = await context.Tasks.FindAsync(id);
             if (task == null) {
                 return false;
             }
@@ -58,13 +62,9 @@ namespace Business.Concrete
             task.Description = description;
             task.State = taskState;
 
-            await content.SaveChangesAsync();
+            await context.SaveChangesAsync();
             return true;
         }
-        public async Task<TodoTask?> Get(int id)
-        {
-            var task = await content.Tasks.FindAsync(id);
-            return task;
-        }
     }
+
 }

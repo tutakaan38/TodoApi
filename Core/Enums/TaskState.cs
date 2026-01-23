@@ -7,7 +7,7 @@ namespace Core.Enums
     public enum TaskState
     {
         Todo,
-        InProgress,
+        Progress,
         Done
     }
 }

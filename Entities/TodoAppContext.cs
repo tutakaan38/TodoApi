@@ -8,6 +8,7 @@ namespace Entities
 {
     public class TodoAppContext:DbContext
     {
+        //Veritabanı bağlantısı gerçekleşiyor
         public TodoAppContext(DbContextOptions options) : base(options)
         {
             
@@ -20,6 +21,8 @@ namespace Entities
             //modelBuilder.Entity<Task>()
             //    .HasKey(t => t.Id); // Burada hangi alan anahtar ise onu seçmelisin
         }
+
+
     }
     
 

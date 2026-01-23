@@ -6,63 +6,51 @@ using WebAPI.Dtos;
 
 namespace WebAPI.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
-    public class TasksController : ControllerBase
+    [Route("api/[controller]")]
+    public class TasksController(ITaskService taskService) : ControllerBase
     {
-        private readonly ITaskService _taskService;
-
-        public TasksController(ITaskService taskService)
-        {
-            _taskService = taskService;
-        }
-
         [HttpPost]
         public async Task<ActionResult<TodoTask>> Create(TaskCreateDto taskCreateDto)
         {
-            if (taskCreateDto == null)
-                return BadRequest("Data cannot be empty");
+            // Parametre sırası: Title, Description
+            var task = await taskService.Create(taskCreateDto.Title, taskCreateDto.Content);
+            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
+        }
 
-            var task = await _taskService.Create(taskCreateDto.Title, taskCreateDto.Description);
-            return Ok(task);
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateTask(int id, TaskCreateDto taskCreateDto)
+        {
+            // HATA DÜZELTİLDİ: Parametre sırası servis ile uyumlu hale getirildi
+            var result = await taskService.Update(id, taskCreateDto.Title, taskCreateDto.Content, taskCreateDto.State);
+
+            if (!result) return NotFound();
+
+            return NoContent();
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TodoTask>> GetTask(int id) 
-        { 
-            var task = await _taskService.Get(id);
+        public async Task<ActionResult<TodoTask>> GetTask(int id)
+        {
+            var task = await taskService.Get(id);
             if (task == null) return NotFound();
             return Ok(task);
         }
 
-        //Task<ActionResult<IEnumerable<DiaryEntry>>>
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TodoTask>>> GetTasks()
         {
-            return await _taskService.Get();
+            var tasks = await taskService.Get();
+            return Ok(tasks);
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id) {
-            if (await _taskService.Delete(id))
-                return NoContent();
-
-            return NotFound();
-            
-        }
-
-        [HttpPut("{id}")]
-        public async Task<ActionResult<bool>> UpdateTask(TaskCreateDto taskCreateDto,int id)
+        public async Task<ActionResult> Delete(int id)
         {
-            if (await _taskService.Update(id, taskCreateDto.Description, taskCreateDto.Title,taskCreateDto.State))
-            {
+            if (await taskService.Delete(id))
                 return NoContent();
-            }
+
             return NotFound();
         }
-
-        
-
     }
 }
