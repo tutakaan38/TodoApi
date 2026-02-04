@@ -10,6 +10,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<TodoAppContext>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddCors(options =>
 {

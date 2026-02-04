@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections;
-using WebAPI.Dtos;
+using Business.Dtos;
 
 namespace WebAPI.Controllers
 {
@@ -15,8 +15,14 @@ namespace WebAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<TodoTask>> CreateTask([FromBody] TaskCreateDto taskCreateDto)
         {
-            var task = await taskService.Create(taskCreateDto.Title,taskCreateDto.Content);
-            if (task == null) return BadRequest("This data cannot be empty");
+            var task = await taskService.Create(taskCreateDto.Title, taskCreateDto.Content, taskCreateDto.UserId);
+
+            if (task == null)
+            {
+                // Var olmayan bir ID girildiğinde programın çökmesi yerine bu mesaj dönecek
+                return BadRequest($"Hata: ID'si {taskCreateDto.UserId} olan bir kullanıcı bulunamadı. Lütfen geçerli bir kullanıcı ID'si giriniz.");
+            }
+
             return Ok(task);
         }
 
@@ -28,19 +34,31 @@ namespace WebAPI.Controllers
             return NoContent();
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TodoTask>> GetTask(int id)
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<TaskViewDto>>> GetUserTasks(int userId)
         {
-            var task = await taskService.Get(id);
-            if (task == null) return NotFound();
-            return Ok(task);
+            
+
+            var tasks = await taskService.GetByUserId(userId);
+
+            
+
+            if (tasks == null || !tasks.Any())
+            {
+                
+                return NotFound($"{userId} ID'li kullanıcıya ait herhangi bir görev bulunamadı veya kullanıcı mevcut değil.");
+            }
+
+            return Ok(tasks);
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<TodoTask>>> GetTasks()
+
+        [HttpGet("{id}")] // ID'ye göre tek bir görev detayını getirir
+        public async Task<ActionResult<TodoTask>> GetTask(int id)
         {
-            var tasks = await taskService.Get();
-            return Ok(tasks);
+            var task = await taskService.GetById(id);
+            if (task == null) return NotFound("Görev bulunamadı.");
+            return Ok(task);
         }
 
         [HttpDelete("{id}")]
