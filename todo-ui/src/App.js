@@ -1,90 +1,139 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import Auth from './components/Auth';
+import TaskList from './components/TaskList';
+import TaskDetail from './components/TaskDetail';
+import TaskForm from './components/TaskForm';
 
-const API_URL = "https://localhost:7233/api/tasks";
+const TASKS_API = "https://localhost:7233/api/Tasks";
+const AUTH_API = "https://localhost:7233/api/Auth";
 
 function App() {
+  const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [selectedTask, setSelectedTask] = useState(null); // Detay görünümü için
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [authData, setAuthData] = useState({ username: "", password: "" });
+  const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => { fetchTasks(); }, []);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
+  const [isAddingTask, setIsAddingTask] = useState(false);
+
+  // Yeni görev ekleme için geçici state
+  const [tempTask, setTempTask] = useState({ title: "", content: "", state: 0 });
+  // App.js içindeki diğer state'lerin yanına ekle
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user?.userId) fetchTasks();
+    else setTasks([]);
+  }, [user]);
+
+  // --- API FONKSİYONLARI ---
 
   const fetchTasks = async () => {
-    const response = await axios.get(API_URL);
-    setTasks(response.data);
+    try {
+      const response = await axios.get(`${TASKS_API}/user/${user.userId}`);
+      setTasks(response.data);
+    } catch (err) { console.error("Veri çekilemedi:", err); }
   };
 
   const addTask = async () => {
-    if (!title || !content) return alert("Lütfen iki alanı da doldurun!");
-    // Backend'deki TaskCreateDto: Title ve Content bekliyor
-    await axios.post(API_URL, { Title: title, Content: content });
-    setTitle(""); setContent("");
-    fetchTasks();
+    if (!tempTask.title || !tempTask.content) return alert("Lütfen tüm alanları doldurun!");
+    try {
+      await axios.post(TASKS_API, {
+        Title: tempTask.title,
+        Content: tempTask.content,
+        UserId: user.userId
+      });
+      setTempTask({ title: "", content: "", state: 0 });
+      setIsAddingTask(false);
+      fetchTasks();
+    } catch (err) { alert("Görev eklenemedi!"); }
   };
 
-  // Eğer bir görev seçildiyse "Detay Sayfası"nı göster
-  if (selectedTask) {
-    return (
-      <div className="detail-container">
-        <button onClick={() => setSelectedTask(null)}>← Geri Dön</button>
-        <h1>{selectedTask.title}</h1>
-        <hr />
-        <p><strong>İçerik:</strong> {selectedTask.description || selectedTask.content}</p>
-        <p><strong>Durum:</strong> {selectedTask.state === 0 ? "Yapılacak" : "Bitti"}</p>
-      </div>
-    );
-  }
+  const handleUpdate = async () => {
+    try {
+      await axios.put(`${TASKS_API}/${editingTask.id}`, {
+        id: editingTask.id,
+        title: editingTask.title,
+        // Backend DTO'nda 'content' beklediği için 'content' ismini kullanıyoruz
+        content: editingTask.content || editingTask.description,
+        state: parseInt(editingTask.state)
+      });
+      setEditingTask(null);
+      fetchTasks();
+    } catch (error) { alert("Güncelleme hatası!"); }
+  };
 
   const deleteTask = async (id) => {
-    if (window.confirm("Bu görevi silmek istediğinizden emin misiniz?")) {
+    if (window.confirm("Bu görevi silmek istediğinize emin misiniz?")) {
       try {
-        await axios.delete(`${API_URL}/${id}`);
+        await axios.delete(`${TASKS_API}/${id}`);
         fetchTasks();
-      } catch (error) {
-        console.log("Görev silinemedi:" + error);
-        alert("Görev silinemedi");
-      }
+      } catch (err) { alert("Silme hatası!"); }
     }
-  }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setTasks([]);
+    setSearchTerm("");
+  };
+
+  // --- RENDERING LOGIC ---
+
+  if (!user) return (
+    <Auth
+      isLoading={isLoading}
+      isRegistering={isRegistering}
+      setIsRegistering={setIsRegistering}
+      authData={authData}
+      setAuthData={setAuthData}
+      handleLogin={async () => {
+        if (isLoading) return
+        try {
+          const res = await axios.post(`${AUTH_API}/login`, authData);
+          setUser(res.data);
+        } catch { alert("Giriş başarısız!"); }
+        finally {
+          setIsLoading(false);
+        }
+      }}
+      handleRegister={async () => {
+        try {
+          await axios.post(`${AUTH_API}/register`, authData);
+          alert("Kayıt başarılı!");
+          setIsRegistering(false);
+        } catch { alert("Kayıt hatası!"); }
+      }}
+    />
+  );
+
+  if (selectedTask) return <TaskDetail task={selectedTask} onBack={() => setSelectedTask(null)} />;
+
+  if (isAddingTask || editingTask) return (
+    <TaskForm
+      mode={editingTask ? 'edit' : 'add'}
+      taskData={editingTask || tempTask}
+      setTaskData={editingTask ? setEditingTask : setTempTask}
+      onSave={editingTask ? handleUpdate : addTask}
+      onCancel={() => { setEditingTask(null); setIsAddingTask(false); }}
+    />
+  );
 
   return (
-    <div className="container">
-      <h1>Todo App</h1>
-
-      {/* İki Input Alanı */}
-      <div className="input-group">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Başlık..." />
-        <input value={content} onChange={(e) => setContent(e.target.value)} placeholder="İçerik (Description)..." />
-        <button onClick={addTask}>Add</button>
-      </div>
-
-      <div className='cards'>
-        {tasks.map(task => (
-          <div key={task.id} className='card-wrapper'>
-            {/* display: flex ve justify-content: space-between butonu en sağa iter */}
-            <div
-              className='card-header'
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
-              onClick={() => setSelectedTask(task)} // Kartın geneline tıklayınca detaya gitmesi için
-            >
-              <span>{task.title}</span>
-
-              <button
-                className="delete-btn-small"
-                onClick={(e) => {
-                  e.stopPropagation(); // Detay sayfasının açılmasını engeller
-                  deleteTask(task.id);
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <TaskList
+      user={user}
+      tasks={tasks}
+      searchTerm={searchTerm}
+      setSearchTerm={setSearchTerm}
+      onLogout={handleLogout}
+      onAddTaskClick={() => setIsAddingTask(true)}
+      onTaskClick={setSelectedTask}
+      onEditClick={setEditingTask}
+      onDeleteClick={deleteTask}
+    />
   );
 }
 
